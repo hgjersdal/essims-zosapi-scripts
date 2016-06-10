@@ -154,7 +154,7 @@ class MtfMFGenerator(object):
         lopt.Algorithm = constants.OptimizationAlgorithm_DampedLeastSquares
         lopt.Cycles = constants.OptimizationCycles_Infinite
         lopt.NumberOfCores = 8
-        print("Starting lopt")    
+        print("Starting local optimization")    
         CastTo(lopt, "ISystemTool").Run()
         mf = lopt.InitialMeritFunction
         counter = 0
@@ -184,7 +184,7 @@ class MtfMFGenerator(object):
         hopt = self.TheSystem.Tools.OpenHammerOptimization()
         hopt.Algorithm = constants.OptimizationAlgorithm_DampedLeastSquares
         hopt.NumberOfCores = 8
-        print("Starting hopt")    
+        print("Starting hammer optimization")    
         CastTo(hopt, "ISystemTool").Run()
         mf = hopt.InitialMeritFunction
         print("Starting loop, mf = " + str(mf))
@@ -199,7 +199,7 @@ class MtfMFGenerator(object):
         CastTo(hopt, "ISystemTool").Close()
         return(mf)
     
-def OptimizeMTF(target, maxfreq, startfreq):
+def OptimizeMTF(target, maxfreq, startfreq, fname):
     """Optimize on MTF for increasing frequency, first using local optimization, then hammer.
 
     Merit function requires GMTS and GMTT to be above 0.5 for all
@@ -217,22 +217,22 @@ def OptimizeMTF(target, maxfreq, startfreq):
         print('Preparing for freq ' + str(freq))
         zosapi = MtfMFGenerator()
         value = zosapi.ExampleConstants()
-        zosapi.OpenFile('m:\\tmp2.zmx',False)
+        zosapi.OpenFile(fname,False)
         zosapi.RemoveAllAfterDMFS()
         zosapi.OptimizeMTFGreaterThan(5, freq, 0.5)
         mf = zosapi.LocalOptimizeMTF(target)
-        zosapi.TheSystem.SaveAs("m:\\tmp2.zmx")
+        zosapi.TheSystem.SaveAs(fname)
         del zosapi
         print('MF after local optimization is ' + str(mf))
 
         #Global optimization
         zosapi = MtfMFGenerator()
         value = zosapi.ExampleConstants()
-        zosapi.OpenFile('m:\\tmp2.zmx',False)
+        zosapi.OpenFile(fname,False)
         zosapi.RemoveAllAfterDMFS();
         zosapi.OptimizeMTFGreaterThan(5, freq, 0.5)
         zosapi.HammerOptimize(target)
-        zosapi.TheSystem.SaveAs("m:\\tmp2.zmx")
+        zosapi.TheSystem.SaveAs(fname)
         del zosapi
         freq = freq + 0.25
         
@@ -240,5 +240,5 @@ if __name__ == '__main__':
     #Make sure paths are ok before running
     # Insert Code Here
     # Open file
-    OptimizeMTF(0.001, 13, 4.25)
+    OptimizeMTF(0.001, 13, 6.0, 'm:\\tmp2.zmx')
 
