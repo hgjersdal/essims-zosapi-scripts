@@ -92,7 +92,7 @@ class PlotCentralFieldMTF(object):
         for x in range (9,5,-1):
             field.RemoveField(x)
         
-    def PlotMtfAllConfigs(self):
+    def PlotMtfAllConfigs(self, bname):
         """Loop over all configs in MCE, and plot the MTF for all active fields"""
         mce = self.TheSystem.MCE
         mcs = mce.NumberOfConfigurations
@@ -116,21 +116,22 @@ class PlotCentralFieldMTF(object):
                 plt.plot(ds.XData.Data,ds.YData.Data)
 
             plt.grid()    
-            fig.savefig('m:\\plots\\mtf-' + str(mc) + '.png')
+            fig.savefig('c:\\Users\\haavagj\\plots\\' + bname  + str(mc) + '.png')
             plt.close(fig)
         
         
 if __name__ == '__main__':
     """Reads file m:/tmp2.zmx, removes fields and plots the MTF for the central fields
     Make sure the paths for the plots and the input file are ok before running"""
-    zosapi = PlotCentralFieldMTF()
-    value = zosapi.ExampleConstants()
-    zosapi.OpenFile('m:\\tmp2.zmx',False)
-    zosapi.RemoveExtremeFields()
-    zosapi.PlotMtfAllConfigs()
+    for i in range(0,100):
+        print('Hello' + str(i))
+        zosapi = PlotCentralFieldMTF()
+        value = zosapi.ExampleConstants()
+        zosapi.OpenFile('c:\\Users\\haavagj\\MC-alignment' + str(i) + '.zmx',False)
+        zosapi.RemoveExtremeFields()
+        zosapi.PlotMtfAllConfigs('mtf' + str(i))
     
-    # This will clean up the connection to OpticStudio.
-    # Note that it closes down the server instance of OpticStudio, so you for maximum performance do not do
-    # this until you need to.
-    del zosapi
-    zosapi = None
+        # This will clean up the connection to OpticStudio.
+        # Note that it closes down the server instance of OpticStudio, so you for maximum performance do not do
+        # this until you need to.
+        del zosapi

@@ -240,5 +240,5 @@ if __name__ == '__main__':
     #Make sure paths are ok before running
     # Insert Code Here
     # Open file
-    OptimizeMTF(0.001, 13, 6.0, 'm:\\tmp2.zmx')
+    OptimizeMTF(0.001, 13, 7.0, 'c:\\Users\\haavagj\\tmp2.zmx')
 

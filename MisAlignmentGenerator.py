@@ -178,8 +178,8 @@ REAXp is true if we are aiming in x, false if we are aiming in y
                 surfList.append(n)
         return(surfList)
 
-    def createPickups(self, indexFrom, indexTo):
-        """ Create picups with scale factor -1 for decenters and tilts. """
+    def createPickupsAndSetOrder(self, indexFrom, indexTo):
+        """ Create picups with scale factor -1 for decenters and tilts. Set order to 1"""
         lde = self.TheSystem.LDE
         surf2 = lde.GetSurfaceAt(indexTo)
         for cellIndex in [12,13,14,15]:
@@ -188,6 +188,9 @@ REAXp is true if we are aiming in x, false if we are aiming in y
             pickup.ScaleFactor = -1.0
             pickup.Surface = indexFrom
             cell2.SetSolveData(pickup)
+        ocol = CastTo(surf2,'ILDERow').GetSurfaceCell(constants.SurfaceColumn_Par6)
+        ocol.IntegerValue = 1
+        
 
     def CBify(self, index, variablep):
         """ Make surface a CG, make tilts variable """
@@ -207,7 +210,7 @@ REAXp is true if we are aiming in x, false if we are aiming in y
             self.CBify(index+1, False)
             lde.InsertNewSurfaceAt(index)
             self.CBify(index, True)
-            self.createPickups(index,index+2)
+            self.createPickupsAndSetOrder(index,index+2)
 
     def RemoveAllVariables(self):
         """ Remove all the variables """
@@ -216,30 +219,52 @@ REAXp is true if we are aiming in x, false if we are aiming in y
        
     def MisalignSystem(self, t1, t2, t3):
         """ Misalign the system
-    T1 is the s.t.d. of decentering of the vertex
+    T1 is the s.t.d. of decentering of the mirror
     T2 is the s.t.d. of vertex displacemnt from center of mirror
     T3 is the s.t.d. of how much the laser misses the center of the mirror
- """
+
+    The vertex is displaced by t1 + t2. The chief ray should then miss by t3 - t2.
+    Normal mirros are displaced by t1 + t2, then missed by t3 - t2.
+    Final plane is missed by t1 + t3, since there is no vertex displacement, only decenter and 
+    """
         stopSurf = self.TheSystem.LDE.StopSurface
         stopRad = self.TheSystem.LDE.GetSurfaceAt(stopSurf).SemiDiameter
-        px = random.gauss(0,t3/stopRad)
-        py = random.gauss(0,t3/stopRad)
+        lastSurf = self.TheSystem.LDE.NumberOfSurfaces - 1
+        print('Last surface is' + str(lastSurf))
+        px2 = random.gauss(0, t2)
+        py2 = random.gauss(0,t2)
+        px3 = random.gauss(0,t3)
+        py3 = random.gauss(0,t3)
+        px = (px3 - px2)/stopRad
+        py = (py3 - py2)/stopRad
+
         mList = self.ListMirrorPlanes()
+        mList.append(lastSurf)
         for surf in mList:
             x1 = random.gauss(0,t1)
             y1 = random.gauss(0,t1)
-            self.SurfaceDisplacement(surf, x1, y1)
-        mList.append(self.TheSystem.LDE.NumberOfSurfaces)
-        for surf in mList:
-            if not surf == stopSurf:
-                x2 = random.gauss(0,t2) + random.gauss(0,t3)
-                y2 = random.gauss(0,t2) + random.gauss(0,t3)
-                self.AddREAOperands(surf, x2, y2, px, py)
+            x2 = random.gauss(0,t2)
+            y2 = random.gauss(0,t2)
+            x3 = random.gauss(0,t3)
+            y3 = random.gauss(0,t3)
+            if surf == stopSurf:
+                x2 = px2
+                y2 = py2
+             
+            if not surf == lastSurf:
+                self.SurfaceDisplacement(surf, x1 + x2, y1 + y2)
+
+            if surf == lastSurf:
+                self.AddREAOperands(surf, x1 + x3, y1 + y3, px, py)
+            elif not surf == stopSurf:
+                self.AddREAOperands(surf, x3 - x2, y3 - y2, px, py)
+            
         self.LocalOptimize(0.00000001)        
           
 if __name__ == '__main__':
     #Make sure paths are ok before running
     # I have to open a ZOSAPI instance for every turn, or else it fails eventually
+    # This slows down the process a whole lot
     for i in range(0,100):
         zosapi = MisAlignmentGenerator()
         print("Misaligning system " + str(i))
