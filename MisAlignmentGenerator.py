@@ -230,7 +230,6 @@ REAXp is true if we are aiming in x, false if we are aiming in y
         stopSurf = self.TheSystem.LDE.StopSurface
         stopRad = self.TheSystem.LDE.GetSurfaceAt(stopSurf).SemiDiameter
         lastSurf = self.TheSystem.LDE.NumberOfSurfaces - 1
-        print('Last surface is' + str(lastSurf))
         px2 = random.gauss(0, t2)
         py2 = random.gauss(0,t2)
         px3 = random.gauss(0,t3)

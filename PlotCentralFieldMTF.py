@@ -2,6 +2,8 @@ from win32com.client.gencache import EnsureDispatch, EnsureModule
 from win32com.client import CastTo, constants
 import matplotlib.pyplot as plt
 import time
+from array import array
+from math import floor
 # Notes
 #
 # The python project and script was tested with the following tools:
@@ -87,12 +89,26 @@ class PlotCentralFieldMTF(object):
             return "Invalid"
 
     def RemoveExtremeFields(self):
-        """Remove field points 6,7,8,9. """
+        """Remove field points 6,7,8,9 and 1. """
         field = self.TheSystem.SystemData.Fields
         for x in range (9,5,-1):
             field.RemoveField(x)
+        field.RemoveField(1)
+
+    def CheckLimits(self, xdata, ydata, resolution, index):
+        breakp = False
+        for i in range(xdata.Length):
+            if ydata.Data[i][index] < 0.25:
+                lim = xdata.Data[i]
+                resolution.append(xdata.Data[i])
+                breakp = True
+                break
+        if not breakp:
+            resolution.append(20)
         
-    def PlotMtfAllConfigs(self, bname):
+    
+        
+    def PlotMtfAllConfigs(self, bname, resolution):
         """Loop over all configs in MCE, and plot the MTF for all active fields"""
         mce = self.TheSystem.MCE
         mcs = mce.NumberOfConfigurations
@@ -114,7 +130,8 @@ class PlotCentralFieldMTF(object):
             for i in range(results.NumberOfDataSeries):
                 ds = results.GetDataSeries(i)
                 plt.plot(ds.XData.Data,ds.YData.Data)
-
+                self.CheckLimits(ds.XData, ds.YData, resolution, 0) #Tangential (or opposite)
+                self.CheckLimits(ds.XData, ds.YData, resolution, 1) #Sagittal(or opposite)  
             plt.grid()    
             fig.savefig('c:\\Users\\haavagj\\plots\\' + bname  + str(mc) + '.png')
             plt.close(fig)
@@ -123,15 +140,23 @@ class PlotCentralFieldMTF(object):
 if __name__ == '__main__':
     """Reads file m:/tmp2.zmx, removes fields and plots the MTF for the central fields
     Make sure the paths for the plots and the input file are ok before running"""
+    resolutions = []
     for i in range(0,100):
-        print('Hello' + str(i))
+        print('MC-alignment' + str(i))
         zosapi = PlotCentralFieldMTF()
         value = zosapi.ExampleConstants()
         zosapi.OpenFile('c:\\Users\\haavagj\\MC-alignment' + str(i) + '.zmx',False)
         zosapi.RemoveExtremeFields()
-        zosapi.PlotMtfAllConfigs('mtf' + str(i))
+        zosapi.PlotMtfAllConfigs('mtf' + str(i), resolutions)
     
         # This will clean up the connection to OpticStudio.
         # Note that it closes down the server instance of OpticStudio, so you for maximum performance do not do
         # this until you need to.
         del zosapi
+    print(resolutions)
+    fig,ax = plt.subplots(1,1,figsize=(8,6)) 
+    plt.hist(resolutions)
+    plt.grid()
+    fig.savefig('c:\\Users\\haavagj\\plots\\mtf-resolution.png')
+    plt.close(fig)
+    
