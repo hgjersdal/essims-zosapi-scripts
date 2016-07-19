@@ -142,6 +142,16 @@ REAXp is true if we are aiming in x, false if we are aiming in y
         colx.DoubleValue = missx;
         coly = CastTo(row,'ILDERow').GetSurfaceCell(constants.SurfaceColumn_Par2);
         coly.DoubleValue = missy;
+
+    def ThicknessRandomizer(self, sigma):
+        """ All planes with a thickness different from 0 gets moved around a little"""
+        lde = self.TheSystem.LDE
+        nSurf = lde.NumberOfSurfaces
+        for n in range(0,nSurf):
+            surf = lde.GetSurfaceAt(n)
+            thickness = surf.Thickness
+            if thickness != 0:
+                surf.Thickness = random.gauss(thickness, sigma)
         
     def LocalOptimize(self, target):
         """
@@ -220,22 +230,19 @@ REAXp is true if we are aiming in x, false if we are aiming in y
     def MisalignSystem(self, t1, t2, t3):
         """ Misalign the system
     T1 is the s.t.d. of decentering of the mirror
-    T2 is the s.t.d. of vertex displacemnt from center of mirror
-    T3 is the s.t.d. of how much the laser misses the center of the mirror
+    T2 is the s.t.d. of how much the laser misses the center of the mirror
+    T3 is the s.t.d. of the thickness
 
-    The vertex is displaced by t1 + t2. The chief ray should then miss by t3 - t2.
-    Normal mirros are displaced by t1 + t2, then missed by t3 - t2.
-    Final plane is missed by t1 + t3, since there is no vertex displacement, only decenter and 
+    The vertex is displaced by t1. The chief ray should miss by t2.
+    Final plane is missed by t1 + t2, since there is no vertex displacement, only decenter and
     """
+        self.ThicknessRandomizer(t3)
+        
         stopSurf = self.TheSystem.LDE.StopSurface
         stopRad = self.TheSystem.LDE.GetSurfaceAt(stopSurf).SemiDiameter
         lastSurf = self.TheSystem.LDE.NumberOfSurfaces - 1
-        px2 = random.gauss(0, t2)
-        py2 = random.gauss(0,t2)
-        px3 = random.gauss(0,t3)
-        py3 = random.gauss(0,t3)
-        px = (px3 - px2)/stopRad
-        py = (py3 - py2)/stopRad
+        px = random.gauss(0,t2)/stopRad
+        py = random.gauss(0,t2)/stopRad
 
         mList = self.ListMirrorPlanes()
         mList.append(lastSurf)
@@ -244,19 +251,14 @@ REAXp is true if we are aiming in x, false if we are aiming in y
             y1 = random.gauss(0,t1)
             x2 = random.gauss(0,t2)
             y2 = random.gauss(0,t2)
-            x3 = random.gauss(0,t3)
-            y3 = random.gauss(0,t3)
-            if surf == stopSurf:
-                x2 = px2
-                y2 = py2
              
             if not surf == lastSurf:
-                self.SurfaceDisplacement(surf, x1 + x2, y1 + y2)
+                self.SurfaceDisplacement(surf, x1, y1)
 
             if surf == lastSurf:
-                self.AddREAOperands(surf, x1 + x3, y1 + y3, px, py)
+                self.AddREAOperands(surf, x1 + x2, y1 + y2, px, py)
             elif not surf == stopSurf:
-                self.AddREAOperands(surf, x3 - x2, y3 - y2, px, py)
+                self.AddREAOperands(surf, x2, y2, px, py)
             
         self.LocalOptimize(0.00000001)        
           
@@ -273,6 +275,6 @@ if __name__ == '__main__':
         surfList = zosapi.ListMirrorPlanes()
         print(surfList)
         zosapi.AddCoordinateBreaks()
-        zosapi.MisalignSystem(0.25,0.25,0.25)
+        zosapi.MisalignSystem(0.25,0.25,1)
         zosapi.TheSystem.SaveAs('c:\\Users\haavagj\\MC-alignment' + str(i) + '.zmx')
         del zosapi
