@@ -92,6 +92,13 @@ class MisAlignmentGenerator(object):
         else:
             return "Invalid"
 
+    def SpecialGauss(self,mean, sigma):
+        """ A gaussian distribution whith the tails clipped at 2 sigma."""
+        rand = 10.0 * sigma
+        while abs(rand) > 2.0 * sigma:
+            rand = random.gauss(0,sigma)
+        return(rand + mean)
+    
     def RemoveAllMtfRows(self):
         """Remove all the oparands in the merit function editor"""
         mfe = self.TheSystem.MFE
@@ -151,7 +158,7 @@ REAXp is true if we are aiming in x, false if we are aiming in y
             surf = lde.GetSurfaceAt(n)
             thickness = surf.Thickness
             if thickness != 0:
-                surf.Thickness = random.gauss(thickness, sigma)
+                surf.Thickness = self.SpecialGauss(thickness, sigma)
         
     def LocalOptimize(self, target):
         """
@@ -241,16 +248,16 @@ REAXp is true if we are aiming in x, false if we are aiming in y
         stopSurf = self.TheSystem.LDE.StopSurface
         stopRad = self.TheSystem.LDE.GetSurfaceAt(stopSurf).SemiDiameter
         lastSurf = self.TheSystem.LDE.NumberOfSurfaces - 1
-        px = random.gauss(0,t2)/stopRad
-        py = random.gauss(0,t2)/stopRad
+        px = self.SpecialGauss(0,t2)/stopRad
+        py = self.SpecialGauss(0,t2)/stopRad
 
         mList = self.ListMirrorPlanes()
         mList.append(lastSurf)
         for surf in mList:
-            x1 = random.gauss(0,t1)
-            y1 = random.gauss(0,t1)
-            x2 = random.gauss(0,t2)
-            y2 = random.gauss(0,t2)
+            x1 = self.SpecialGauss(0,t1)
+            y1 = self.SpecialGauss(0,t1)
+            x2 = self.SpecialGauss(0,t2)
+            y2 = self.SpecialGauss(0,t2)
              
             if not surf == lastSurf:
                 self.SurfaceDisplacement(surf, x1, y1)

@@ -13,8 +13,28 @@ from math import floor
 #       Python Tools for Visual Studio (https://pytools.codeplex.com/) - integration into Visual Studio
 #
 # Note that Visual Studio and Python Tools make development easier, however this python script should should run without either installed.
+class Histos:
+    def __init__(self):
+        self.resolutions = []
+        self.histos5 = [[],[],[]]
+        self.histos75 = [[],[],[]]
+        self.histos10 = [[],[],[]]
 
+    def FillCounterHisto(self, histos, counter):
+        for i in range(3):
+            histos[i].append(counter[i])
+
+    def PlotHistos(self, path, bname, histos):
+        typeNames = ["tangential","sagittal","average"]
+        for i in range(3):
+            fig,ax = plt.subplots(1,1,figsize=(8,6))
+            plt.hist(histos[i])
+            plt.grid()
+            fig.savefig(path + bname + '-' + typeNames[i] + '.png')
+            plt.close(fig)
+            
 class PlotCentralFieldMTF(object):
+
     class LicenseException(Exception):
         pass
 
@@ -95,20 +115,25 @@ class PlotCentralFieldMTF(object):
             field.RemoveField(x)
         field.RemoveField(1)
 
-    def CheckLimits(self, xdata, ydata, resolution, index):
-        breakp = False
+    def CheckLimits(self, xdata, ydata, index, histos):
+        resolution = 20.0
         for i in range(xdata.Length):
             if ydata.Data[i][index] < 0.25:
                 lim = xdata.Data[i]
-                resolution.append(xdata.Data[i])
-                breakp = True
+                resolution = xdata.Data[i]
                 break
-        if not breakp:
-            resolution.append(20)
-        
-    
-        
-    def PlotMtfAllConfigs(self, bname, resolution):
+        histos.resolutions.append(20)
+        return(resolution)
+
+    def CornerCounter (self,res, index, h5, h75, h10):
+        if res > 5.0:
+            h5[index] = 1 + h5[index]
+        if res > 7.5:
+            h75[index] = 1 + h75[index]
+        if res > 10.0:
+            h10[index] = 1 + h10[index]
+            
+    def PlotMtfAllConfigs(self, bname, histos):
         """Loop over all configs in MCE, and plot the MTF for all active fields"""
         mce = self.TheSystem.MCE
         mcs = mce.NumberOfConfigurations
@@ -126,40 +151,50 @@ class PlotCentralFieldMTF(object):
             results = gmtf.GetResults()
             
             fig, ax = plt.subplots(1,1, figsize=(8,6))
+            res5  = [0,0,0]
+            res75 = [0,0,0]
+            res10 = [0,0,0]
+
             #Loop over results.
             for i in range(results.NumberOfDataSeries):
                 ds = results.GetDataSeries(i)
                 plt.plot(ds.XData.Data,ds.YData.Data)
-                self.CheckLimits(ds.XData, ds.YData, resolution, 0) #Tangential (or opposite)
-                self.CheckLimits(ds.XData, ds.YData, resolution, 1) #Sagittal(or opposite)  
-            plt.grid()    
+                resT = self.CheckLimits(ds.XData, ds.YData, 0, histos) #Tangential (or opposite)
+                resS = self.CheckLimits(ds.XData, ds.YData, 1, histos) #Sagittal(or opposite)
+                self.CornerCounter (resT, 0, res5, res75, res10)
+                self.CornerCounter (resS, 1, res5, res75, res10)
+                self.CornerCounter ((resT + resS)/2.0, 2, res5, res75, res10)
+                
+            histos.FillCounterHisto(histos.histos5 , res5)
+            histos.FillCounterHisto(histos.histos75, res75)
+            histos.FillCounterHisto(histos.histos10, res10)
+            plt.grid()
             fig.savefig('c:\\Users\\haavagj\\plots\\' + bname  + str(mc) + '.png')
-            plt.close(fig)
-        
+            plt.close(fig)    
         
 if __name__ == '__main__':
     """Reads file m:/tmp2.zmx, removes fields and plots the MTF for the central fields
     Make sure the paths for the plots and the input file are ok before running"""
-    resolutions = []
+    histos = Histos()
+    print(histos.resolutions)
+
     for i in range(0,100):
         print('MC-alignment' + str(i))
         zosapi = PlotCentralFieldMTF()
         value = zosapi.ExampleConstants()
         zosapi.OpenFile('c:\\Users\\haavagj\\MC-alignment' + str(i) + '.zmx',False)
         zosapi.RemoveExtremeFields()
-        zosapi.PlotMtfAllConfigs('mtf' + str(i), resolutions)
+        zosapi.PlotMtfAllConfigs('mtf' + str(i), histos)
     
         # This will clean up the connection to OpticStudio.
         # Note that it closes down the server instance of OpticStudio, so you for maximum performance do not do
         # this until you need to.
         del zosapi
-    print(resolutions)
-    f = open('c:\\Users\\haavagj\\plots\\mtf-resolutions.txt','w')
-    for num in resolutions:
-        f.write(str(num) + ' ')
-    f.close()
+    histos.PlotHistos('c:\\Users\\haavagj\\plots\\', "corners-mtf5",  histos.histos5)
+    histos.PlotHistos('c:\\Users\\haavagj\\plots\\', "corners-mtf75", histos.histos75)
+    histos.PlotHistos('c:\\Users\\haavagj\\plots\\', "corners-mtf10", histos.histos10)
     fig,ax = plt.subplots(1,1,figsize=(8,6)) 
-    plt.hist(resolutions)
+    plt.hist(histos.resolutions)
     plt.grid()
     fig.savefig('c:\\Users\\haavagj\\plots\\mtf-resolution.png')
     plt.close(fig)
