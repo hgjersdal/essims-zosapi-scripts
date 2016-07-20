@@ -1,6 +1,6 @@
 from win32com.client.gencache import EnsureDispatch, EnsureModule
 from win32com.client import CastTo, constants
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import time
 from array import array
 from math import floor
@@ -125,16 +125,16 @@ class PlotCentralFieldMTF(object):
             #gmtf.ToFile('m:\\gmtf.txt')
             results = gmtf.GetResults()
             
-            #fig, ax = plt.subplots(1,1, figsize=(8,6))
+            fig, ax = plt.subplots(1,1, figsize=(8,6))
             #Loop over results.
             for i in range(results.NumberOfDataSeries):
                 ds = results.GetDataSeries(i)
-                #plt.plot(ds.XData.Data,ds.YData.Data)
+                plt.plot(ds.XData.Data,ds.YData.Data)
                 self.CheckLimits(ds.XData, ds.YData, resolution, 0) #Tangential (or opposite)
                 self.CheckLimits(ds.XData, ds.YData, resolution, 1) #Sagittal(or opposite)  
-            #plt.grid()    
-            #fig.savefig('c:\\Users\\haavagj\\plots\\' + bname  + str(mc) + '.png')
-            #plt.close(fig)
+            plt.grid()    
+            fig.savefig('c:\\Users\\haavagj\\plots\\' + bname  + str(mc) + '.png')
+            plt.close(fig)
         
         
 if __name__ == '__main__':
@@ -158,9 +158,9 @@ if __name__ == '__main__':
     for num in resolutions:
         f.write(str(num) + ' ')
     f.close()
-    #fig,ax = plt.subplots(1,1,figsize=(8,6)) 
-    #plt.hist(resolutions)
-    #plt.grid()
-    #fig.savefig('c:\\Users\\haavagj\\plots\\mtf-resolution.png')
-    #plt.close(fig)
+    fig,ax = plt.subplots(1,1,figsize=(8,6)) 
+    plt.hist(resolutions)
+    plt.grid()
+    fig.savefig('c:\\Users\\haavagj\\plots\\mtf-resolution.png')
+    plt.close(fig)
     
